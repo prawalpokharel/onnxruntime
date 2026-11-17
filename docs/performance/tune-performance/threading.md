@@ -143,6 +143,29 @@ sess_opt.inter_op_num_threads = 3
 sess = ort.InferenceSession('model.onnx', sess_opt)
 ```
 
+## Set thread counts with environment variables
+
+Since 1.29, you can also set the thread counts from outside the application, with the environment variables `ORT_INTRA_OP_NUM_THREADS` and `ORT_INTER_OP_NUM_THREADS`. This helps when the sessions are created by code you can't change, such as a library.
+
+```bash
+export ORT_INTRA_OP_NUM_THREADS=4
+```
+
+* A thread count set through the API takes precedence. A variable is only used when the matching count is left at 0.
+* `0` keeps the default of one thread per physical core.
+* If a variable is used and its value is negative or not an integer, session creation fails with an error.
+* As with a thread count set through the API, no thread affinity is set.
+
+## CPU limits in containers
+
+On Linux servers, the default number of intra-op threads is the number of physical cores of the machine, and a CPU limit on the process or its container doesn't change it. On a host with many cores, the default thread pool can then have many more threads than the CPUs the process may use:
+
+* **CPU time limit** (a cgroup CPU quota, for example a Kubernetes CPU limit or `docker run --cpus`). The threads use up the quota early in each scheduling period and are then paused until the next one. This shows up as high and uneven latency, and as a rising `nr_throttled` count in the `cpu.stat` file of the container's cgroup.
+* **Restricted set of CPUs** (a cpuset, for example `docker run --cpuset-cpus`). All the threads share the few CPUs that are allowed, and pinning a thread to a core outside the set fails with a `pthread_setaffinity_np failed` error in the log.
+* **CPU affinity mask** (`taskset` or `numactl`). The default thread pool doesn't follow the mask, because each of its threads pins itself to one core of the machine.
+
+In all three cases, set `intra_op_num_threads` or `ORT_INTRA_OP_NUM_THREADS` to the CPU limit rounded down, but not below 1. For example, use 2 for a limit of 2.5 CPUs and 1 for a limit of 0.5. With 1, operators run on the calling thread only. With an explicit count, no affinity is set, so the threads can run on any CPU that the thread creating the session can use. Each session has its own thread pool unless the process uses global thread pools, so if several sessions run at the same time, divide the CPUs between them.
+
 ## Set intra-op thread affinity
 
 It is normally best to not set thread affinity and let the OS handle thread assignment for perf and power reasons. However, for certain scenarios, it may be beneficial to customize intra-op thread affinities, for example:
