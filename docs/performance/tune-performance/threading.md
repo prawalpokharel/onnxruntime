@@ -88,8 +88,8 @@ Example disabling spinning so WorkerLoop doesn't consume extra active cycles spi
 [Python](https://onnxruntime.ai/docs/api/python/api_summary.html#onnxruntime.SessionOptions.add_session_config_entry) (below) - [C++](https://onnxruntime.ai/docs/api/c/struct_ort_api.html) - [.NET/C#](https://onnxruntime.ai/docs/api/csharp/api/Microsoft.ML.OnnxRuntime.SessionOptions.html#Microsoft_ML_OnnxRuntime_SessionOptions_AddSessionConfigEntry_System_String_System_String_) - [Keys](https://github.com/microsoft/onnxruntime/blob/main/include/onnxruntime/core/session/onnxruntime_session_options_config_keys.h)
 ```python
 sess_opt = SessionOptions()
-sess_opt.AddConfigEntry("session.intra_op.allow_spinning", "0")
-sess_opt.AddConfigEntry("session.inter_op.allow_spinning", "0")
+sess_opt.add_session_config_entry("session.intra_op.allow_spinning", "0")
+sess_opt.add_session_config_entry("session.inter_op.allow_spinning", "0")
 ```
 
 ### Spin duration
